@@ -1,9 +1,10 @@
-#include <iostream>
-
-using namespace std;
+#include "server.h"
+#include "log.h"
 
 int main()
 {
-    cout << "a test program";
+    const std::string address = "0.0.0.0:6666";
+    ServerImpl server;
+    server.Run(address);
     return 0;
 }

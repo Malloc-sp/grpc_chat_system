@@ -44,4 +44,5 @@ target_link_libraries(client
     absl::synchronization
     absl::time
     absl::cord
+    LogLib::Log
 )

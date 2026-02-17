@@ -29,11 +29,14 @@ protobuf_generate(
 
 add_executable(server
     src/main.cpp
+    include/server.h src/server.cpp
+
     ${PROTO_SRCS} 
     ${GRPC_SRCS}
+    include/calldata.h src/calldata.cpp
 )
 
-target_include_directories(server PRIVATE ${PROTO_GENERATED_DIR})
+target_include_directories(server PRIVATE ${PROTO_GENERATED_DIR} include)
 
 # ---------- 4. 链接库 ----------
 target_link_libraries(server
@@ -44,4 +47,5 @@ target_link_libraries(server
     absl::synchronization
     absl::time
     absl::cord
+    LogLib::Log
 )
