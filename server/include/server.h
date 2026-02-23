@@ -6,6 +6,7 @@
 #include <grpc++/completion_queue.h>
 #include "proto.grpc.pb.h"
 #include <unordered_map>
+#include <atomic>
 
 using grpc::ServerCompletionQueue;
 using namespace Malloc::chatsystem::net::v1;
@@ -19,11 +20,14 @@ class ServerImpl final
     {
         CallData* user_callDataPtr = nullptr;
         std::mutex user_mutex;
+        std::atomic<bool> user_bWriting{false};
     };
 public:
     ServerImpl();
     ~ServerImpl();
     void Run(const std::string& address);
+    bool addUser(std::string name, CallData* callData);
+    void deleteUser(std::string name);
 
 private:
     std::unique_ptr<grpc::Server> m_server;
@@ -32,7 +36,8 @@ private:
 
 private:
     std::mutex m_writeMutex;
-    //std::unordered_map<std::string, user*> m_onlineStream;
+    std::unordered_map<std::string, user*> m_onlineStream;
+
     CallDataChat* callDataChat;
 
     friend class CallData;

@@ -27,6 +27,7 @@ public:
 
 protected:
     CallDataStatus m_status = CallDataStatus::UNKOWN;
+    std::string m_name;
 };
 
 class CallDataSignUp : public CallData

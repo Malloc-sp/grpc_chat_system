@@ -38,3 +38,26 @@ void ServerImpl::Run(const std::string& address)
             static_cast<CallData*>(tag)->Proceed(ok);
     }
 }
+
+bool ServerImpl::addUser(std::string name, CallData *callData)
+{
+    std::lock_guard<std::mutex> lck(m_writeMutex);
+    user user;
+    user.user_callDataPtr = callData;
+    if(m_onlineStream.find(name) != m_onlineStream.end())
+    {
+        LOG_INFO(std::string("用户重复登录:") + name);
+        return false;
+    }
+
+    LOG_INFO(name + ":已连接服务器");
+    m_onlineStream[name] = &user;
+    return true;
+}
+
+void ServerImpl::deleteUser(std::string name)
+{
+    std::lock_guard<std::mutex> lck(m_writeMutex);
+    m_onlineStream.erase(name);
+    LOG_INFO("已从在线流中删除");
+}

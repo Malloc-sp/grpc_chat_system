@@ -1,4 +1,5 @@
 #include "calldata.h"
+#include "log.h"
 
 CallDataSignUp::CallDataSignUp(GrpcData::AsyncService* service, ServerCompletionQueue *cq)
     :service_(service), cq_(cq)
@@ -32,7 +33,24 @@ void CallDataChat::Proceed(bool ok)
         case CallDataStatus::PROCESS:
         {
             new CallDataChat(service_, cq_, m_owner);
-            m_owner->callDataChat = this;
+
+            const auto& client_metadata = ctx_.client_metadata();
+            std::string name = "";
+            for (const auto& [key, value] : client_metadata) 
+            {
+                if(std::string(key.data(), key.size()) == "name")
+                {
+                    name = std::string(value.data(), value.size());
+                }
+            }
+            if(name == "" || !m_owner->addUser(name ,this))
+            {
+                m_status = CallDataStatus::FINISH;
+                responder_.Finish(grpc::Status::OK, this);
+                return;
+            }
+
+            m_name = name;
             m_status = CallDataStatus::READ;
             responder_.Read(&recvMsg,this);
             break;
@@ -41,6 +59,7 @@ void CallDataChat::Proceed(bool ok)
         {
             if(!ok)
             {
+                m_owner->deleteUser(m_name);
                 m_status = CallDataStatus::FINISH;
                 responder_.Finish(grpc::Status::OK, this);
             }
@@ -51,8 +70,19 @@ void CallDataChat::Proceed(bool ok)
                 resp.set_from(recvMsg.from());
                 resp.set_content(recvMsg.content());
                 std::lock_guard<std::mutex> lck(m_owner->m_writeMutex);
-                auto op = new WriteOperation(this);
-                m_owner->callDataChat->responder_.Write(resp,op);
+                LOG_INFO(recvMsg.to());
+                if(m_owner->m_onlineStream.find(recvMsg.to()) != m_owner->m_onlineStream.end())
+                {
+                    //if(!m_owner->m_onlineStream[recvMsg.to()]->user_bWriting.load())
+                    {
+                        LOG_INFO(recvMsg.from() + " " + recvMsg.to());
+                        auto *cd = static_cast<CallDataChat*>(m_owner->m_onlineStream[recvMsg.to()]->user_callDataPtr);
+                        auto op = new WriteOperation(cd);
+                        cd->responder_.Write(resp,cd);
+                        return;
+                    }
+                }
+                LOG_INFO("发送失败");
             }
             responder_.Read(&recvMsg,this);
             break;

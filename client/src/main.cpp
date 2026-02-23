@@ -35,13 +35,19 @@ std::string StatusCodeToString(grpc::StatusCode code) {
 }
 
 int main() {
+    std::string name;
+    std::string to_name;
+    std::cout << "请输入用户名：";
+    std::cin >> name;
+    std::cout << "请输入对方用户名";
+    std::cin >> to_name;
     std::string ip = "192.168.1.20";
     auto channel = CreateChannel(ip + ":6666", InsecureChannelCredentials());
     auto stub = GrpcData::NewStub(channel);
 
     // 2. 准备上下文，添加 metadata（模拟 CNC 客户端）
     ClientContext ctx;
-    // ctx.AddMetadata("user-name", ip);
+    ctx.AddMetadata("name", name);
     // ctx.AddMetadata("user-password", pin);
     // ctx.AddMetadata("user-from", "PC");
     // ctx.AddMetadata("is-reconnect", is_reconnect);
@@ -55,21 +61,21 @@ int main() {
 
     // 4. 发送一条初始化消息（必须，使服务端进入 READ 状态）
     SendMessageRequest init;
-    init.set_from("PC");
-    init.set_to("CNC");
-    init.set_content("");
+    init.set_from(name);
+    init.set_to(to_name);
+    init.set_content("test");
     init.set_timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::system_clock::now().time_since_epoch()).count());
     if (!stream->Write(init)) {
-        std::cerr << "小屏幕未开启服务器\n";
+        std::cerr << "未开启服务器\n";
         return 1;
     }
 
     // 5. 发送一条实际消息
     SendMessageRequest msg;
-    msg.set_from("test_user_CNC");
-    msg.set_to("test_user_PC");
-    msg.set_content("Hello from CNC");
+    msg.set_from(name);
+    msg.set_to(to_name);
+    msg.set_content("Hello from 0");
     msg.set_timestamp(init.timestamp() + 1);
     if (!stream->Write(msg)) {
         std::cerr << "Write message failed\n";
@@ -87,12 +93,11 @@ int main() {
     {
         // 5. 发送一条实际消息
         SendMessageRequest msg;
-        msg.set_from("192.168.60.132_PC");
-        msg.set_to("192.168.60.132_CNC");
+        msg.set_from(name);
+        msg.set_to(to_name);
         std::string str;
         std::cout << "请输入text: ";
         std::cin >> str;
-        //str = "test";
         msg.set_content(str);
         msg.set_timestamp(init.timestamp() + 1);
         if (!stream->Write(msg)) {
